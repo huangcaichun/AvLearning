@@ -120,3 +120,15 @@ RTP一般一个包的大小是1400左右。demo是1434，这个长度包括RTP H
 ​		RTP Header  +  NALU Header  + NALU  Data  (不包括startcode)。只适合sps、pps,或者一些图像很小的时候B帧用。大多数时候用的是FU-A这种模式。
 
 #### 1.2 打包方式之FU-A
+
+
+
+### RTP H264封包解包代码实现
+
+流程：
+
+​		![image-20220429235611019](\\192.168.1.114\samba\github\AVideoLearning\音视频学习总结\截图\image-20220429235611019.png)
+
+1、新建工程
+
+2、rtp header开始
