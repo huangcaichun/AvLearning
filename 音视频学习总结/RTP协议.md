@@ -132,3 +132,45 @@ RTP一般一个包的大小是1400左右。demo是1434，这个长度包括RTP H
 1、新建工程
 
 2、rtp header开始
+
+
+
+### RTP AAC封包解包代码实现
+
+1、怎么在原有结构添加支持mpeg4-generic (AAC)
+
+​		rtp-payload-interal.h
+
+​		rtp-payload.c
+
+2、具体封包和解包的实现
+
+​		rtp-mpeg4-generic-pack.c
+
+​		rtp-mpeg4-generic-unpack.c
+
+​		注意，RTP的payload type值要和sdp的pt值对应上
+
+​				rtp-mpeg4-generic-pack_input   封包
+
+​				rtp-decode_mpeg4-generic         解包
+
+3、怎么读取aac文件，怎么一帧一帧读取？
+
+​		aac_util.c
+
+​		aac_get_one_frame     假定文件是完整无损的   adts header+data adts header+data
+
+4、怎么实时发送数据
+
+​	1）计算出每一帧数据播放的时长，实际上是固定的frame_duration（注意精度，长时播放误差会增大）。发送了多少帧，可以叠加总共发送的数据可播放的时长。
+
+​	2）设置起始发送时间start_time，然后获取当前的时间cur_time
+
+​		cur_time-start_time,  计算出经过时间。
+
+​		比如sum_time=60 000ms，那发送的时间应该也是cur_time-start_time  = 60 000ms
+
+ 	3)  时间控制
+
+5、具体encode和decode

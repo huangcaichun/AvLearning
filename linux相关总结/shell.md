@@ -75,3 +75,43 @@ nohup tar zcvf day02.tar.gz  day02   &
 正则表达式
 
 管道
+
+
+
+### 变量
+
+set  显示所有的本地变量  
+
+本地变量，只在当前shell下有用
+
+环境变量，用于所有用户进程（经常称为子进程），.bash_profile, 每个用户都使用
+
+声明环境变量 export myvar="fdfsd"
+
+env,   查看环境变量
+
+调环境的时候，心里要有linux kernel，要有shell
+
+unset myvar,   清除变量
+
+
+
+find   ./   -name  "*.c"
+
+标准变量
+
+在 /etc/profile  下定义
+
+
+
+几个重要的配置文件
+
+/etc/bashrc  /etc/profile  .bash_profile   
+
+/etc下很多配置文件
+
+
+
+特殊变量
+
+$#    $*    $?
