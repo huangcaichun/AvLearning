@@ -127,7 +127,7 @@ RTP一般一个包的大小是1400左右。demo是1434，这个长度包括RTP H
 
 流程：
 
-​		![image-20220429235611019](\\192.168.1.114\samba\github\AVideoLearning\音视频学习总结\截图\image-20220429235611019.png)
+![image-20220429235611019.png](\\192.168.1.114\samba\github\AVideoLearning\音视频学习总结\截图\image-20220429235611019.png)
 
 1、新建工程
 
@@ -173,4 +173,33 @@ RTP一般一个包的大小是1400左右。demo是1434，这个长度包括RTP H
 
  	3)  时间控制
 
-5、具体encode和decode
+5、具体encode和decode过程是怎么样的
+
+​	RTP AAC  mepg4-gereric, AU_HEADER_LENGTH 固定2字节，AU_HEADER 数目不固定，一个AU_HEADER 对应一个AU
+
+​	RTP header  + AU_HEADER_LENGTH + AU_HEADER + AU
+
+​	(1) AU_HEADER 的个数和AU是对应上的，1:1对应，AU_HEADER 描述AU的size。
+
+​			AU-size, 描述AU的size
+
+​			AU-Index/AU-Index-delta, 描述AU的序号
+
+### 对AAC进行RTP封包
+
+in.aac->读取一帧数据->RTP 打包->RTP 解包->封装成一帧数据->写入文件out.aac
+
+过程：
+
+​	1、需要将AAC的前7个（或9个）字节的ADTS去掉，即是跳过adts header
+
+​	2、添加RTP Header
+
+​	3、添加2字节的AU_HEADER_LENGTH
+
+​	4、添加2字节的AU_HEADER
+
+​	5、从第17字节开始就是payload（去掉ADTS的aac数据）数据了
+
+
+
