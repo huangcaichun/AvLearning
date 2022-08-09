@@ -11,11 +11,20 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
+
+void handle(int num)
+{
+	printf("recv num:%d\n",num);
+	exit(0);
+}
 
 int main(void)
 {
 	int	listenfd;
 	
+	signal(SIGUSR1, handle);
+
 	listenfd = socket(PF_INET, SOCK_STREAM, 0);
 	//listenfd = socket(AF_INET,  IPPROTO_TCP, 0);
 	if (listenfd < 0)
@@ -59,58 +68,54 @@ int main(void)
 	addrlen =  sizeof(struct sockaddr_in );
 	
     
-    while (1)
-    {
-		conn = accept(listenfd, (struct sockaddr *)&peeraddr, &addrlen );
-		if (conn < 0)
+	conn = accept(listenfd, (struct sockaddr *)&peeraddr, &addrlen );
+	if (conn < 0)
+	{
+		perror("accept");
+		exit(0);
+	}
+	printf("perradd:%s peerport:%d \n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
+	
+	int pid = fork();
+	if (pid > 0) //父进程接收数据
+	{
+		//close(listenfd); //子进程不需要监听
+		char recbuf[1024];
+		while (1)
 		{
-			perror("accept");
-			exit(0);
-		}
-		printf("perradd:%s peerport:%d \n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
-		
-		//每来一个连接 启动一个子进程
-		int pid = fork();
-		if (pid == 0)
-		{
-			close(listenfd); //子进程不需要监听
-			char recbuf[1024];
-			while (1)
+			//如果对方退出，捕捉
+			int ret = read(conn, recbuf, sizeof(recbuf));
+			if (ret == 0)
 			{
-				memset(recbuf, 0, sizeof(recbuf));
-				//如果对方退出，捕捉
-				int ret = read(conn, recbuf, sizeof(recbuf));
-				if (ret == 0)
-				{
-					//如果在读的过程中，对方已经关闭，tcpip协议会返回一个0数据包
-					printf("ret == 0 peer close退出\n");
-					close(conn);
-					break;  //去掉做实验
-				}
-				else if (ret < 0)
-				{
-					perror("ret<0");
-					break;
-				}
-				fputs(recbuf, stdout); //服务端收到数据，打印屏幕
-				write(conn, recbuf, ret); //服务端回发信息
+				//如果在读的过程中，对方已经关闭，tcpip协议会返回一个0数据包
+				printf("ret == 0 peer close退出\n");
+				//exit(0);
+				break;
 			}
+			else if (ret < 0)
+			{
+				perror("ret<0");
+				break;
+			}
+			fputs(recbuf, stdout); //服务端收到数据，打印屏幕
+			//write(conn, recbuf, ret); //服务端回发信息
+			memset(recbuf, 0, sizeof(recbuf));
 		}
-		else if (pid > 0)
+		close(conn);
+		kill(pid, SIGUSR1);
+	}
+	else 
+	{
+		char sendbuf[1024] = {0};
+		while (fgets(sendbuf, sizeof(sendbuf), stdin) != NULL)
 		{
-			close(conn); //父进程不需要conn
+			//向客户端发数据
+			write(conn, sendbuf, strlen(sendbuf));
+			memset(sendbuf, 0, sizeof(sendbuf));	
 		}
-		else 
-		{
-			printf("创建进程失败\n");
-			close(conn);
-    		//close(listenfd);
-			//exit(0);
-		}
+	}
 
-    }
-
-    close(conn);
+    //close(conn);
     close(listenfd);
 
 	return 0;
