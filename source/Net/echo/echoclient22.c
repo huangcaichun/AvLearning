@@ -1,5 +1,4 @@
-//服务器端实现思路：
-
+//客户端实现思路：
 //标准C库
 #include <stdio.h>
 #include <string.h>
@@ -12,15 +11,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <signal.h>
-
 
 #define ERR_EXIT(m) \
-	do \
-	{ \
-		perror(m); \
-		exit(EXIT_FAILURE); \
-	}while (0)
+    do { \
+        perror(m); \
+        exit(EXIT_FAILURE); \
+    } while (0)
 
 /* Read "n" bytes from a descriptor. */
 ssize_t readn(int fd, void *vptr, size_t n)
@@ -137,84 +133,56 @@ ssize_t readline(int sockfd, void *buf, size_t maxline)
     return -1;
 }
 
-void do_echoser(int conn)
+void echo_cli(int sock)
 {
-    char recvbuf[1024];
-    while (1)
+    char sendbuf[1024] = {0};
+    char recvbuf[1024] = {0};
+    while (fgets(sendbuf, sizeof(sendbuf), stdin) != NULL)
     {
-        memset(recvbuf, 0, sizeof(recvbuf));
-        int ret = readline(conn, recvbuf, 1024);
-        if (ret == -1)
-            ERR_EXIT("readline error");
-        else if (ret  == 0)   //客户端关闭
-        {
-            printf("client close\n");
-            break;
-        }
-
+        writen(sock, sendbuf, strlen(sendbuf));
+        int ret = readline(sock, recvbuf, sizeof(recvbuf));
+		if (ret == -1)
+			ERR_EXIT("readline");
+		else if (ret == 0)
+		{
+			printf("client close\n");
+			break;
+		}
         fputs(recvbuf, stdout);
-        writen(conn, recvbuf, strlen(recvbuf));
+        memset(recvbuf, 0, sizeof(recvbuf));
+        memset(sendbuf, 0, sizeof(sendbuf));
     }
-}
 
-void handle_sigchld(int sig)
-{
-	while (waitpid(-1, NULL, WNOHANG) > 0);
+    close(sock);
 }
 
 int main(void)
 {
-	//signal(SIGCHLD,SIG_IGN);
-	signal(SIGCHLD,handle_sigchld);
-	int	listenfd;
-	if ((listenfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0)
-		ERR_EXIT("socket");
-	
-	struct sockaddr_in servaddr;
-	memset(&servaddr, 0, sizeof(servaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(8001);
-	//servaddr.sin_addr.s_addr = inet_addr(INADDR_ANY); //绑定服务器任意一个ip
-	servaddr.sin_addr.s_addr = inet_addr("192.168.1.114"); //绑定服务器任意一个ip。 为什么127.0.0.1拒绝连接？
-	//inet_aton("127.0.0.1", &servaddr.sin_addr);*/
-	
-	int  optval = 1;
-	//每个级别SOL_SOCKET下，也有很多选项 不同的选择会有不同的结构
-	if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
-		ERR_EXIT("setsockopt");
+	int i = 0;
+	int sock[100];
+	for (i = 0; i < 5; i++)
+	{
+		//int sock;
+		if ((sock[i] = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+			ERR_EXIT("socket");
 
- 	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0 )
- 		ERR_EXIT("bind");
+		struct sockaddr_in servaddr;
+		memset(&servaddr, 0, sizeof(servaddr));
+		servaddr.sin_family = AF_INET;
+		servaddr.sin_port = htons(8001);
+		servaddr.sin_addr.s_addr = inet_addr("192.168.1.114"); 
 
- 	if (listen(listenfd, SOMAXCONN) < 0) 
- 		ERR_EXIT("listen");
- 	
- 	int conn;
- 	struct sockaddr_in peeraddr;
- 	socklen_t peerlen = sizeof(peeraddr);
-	memset(&peeraddr, 0, sizeof(struct sockaddr_in ));
-    
-	pid_t pid;
-    while (1)
-    {
-		if ((conn = accept(listenfd, (struct sockaddr *)&peeraddr, &peerlen)) < 0)
-			ERR_EXIT("accept");
+		if (connect(sock[i], (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+			ERR_EXIT("connect");
 
-		printf("perradd:%s peerport:%d \n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
-		
-		//每来一个连接 启动一个子进程
-		pid = fork();
-		if (pid == -1)
-			ERR_EXIT("fork");
-		if (pid == 0)
-		{
-			close(listenfd); //子进程不需要监听
-			do_echoser(conn);
-			exit(EXIT_SUCCESS); //子进程死，父进程没有调waitpid收尸
-		}
-		else 
-			close(conn); //父进程不需要conn
-    }
+		struct sockaddr_in localaddr;
+		socklen_t addrlen = sizeof(localaddr);
+		if (getsockname(sock[i], (struct sockaddr*)&localaddr, &addrlen) < 0)
+			ERR_EXIT("getsockname");
 
-	return 0;
+		printf("ip = %s port = %d\n", inet_ntoa(localaddr.sin_addr), ntohs(localaddr.sin_port));
+	}
+    echo_cli(sock[4]);
+
+    return 0;
 }
