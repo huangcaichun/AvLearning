@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <signal.h>
 
 #define ERR_EXIT(m) \
     do { \
@@ -140,6 +141,9 @@ void echo_cli(int sock)
     while (fgets(sendbuf, sizeof(sendbuf), stdin) != NULL)
     {
         writen(sock, sendbuf, strlen(sendbuf));
+
+		writen(sock, "11111111111", 11);
+		writen(sock, "22222222222", 11);
         int ret = readline(sock, recvbuf, sizeof(recvbuf));
 		if (ret == -1)
 			ERR_EXIT("readline");
@@ -156,11 +160,17 @@ void echo_cli(int sock)
     close(sock);
 }
 
+void handle(int sig)
+{
+	printf("client rec:%d\n", sig);
+}
+
 int main(void)
 {
 	int i = 0;
 	int sock[100];
-	for (i = 0; i < 5; i++)
+	signal(SIGPIPE, SIG_IGN);
+	for (i = 0; i < 1; i++)
 	{
 		//int sock;
 		if ((sock[i] = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -182,7 +192,7 @@ int main(void)
 
 		printf("ip = %s port = %d\n", inet_ntoa(localaddr.sin_addr), ntohs(localaddr.sin_port));
 	}
-    echo_cli(sock[4]);
+    echo_cli(sock[0]);
 
     return 0;
 }

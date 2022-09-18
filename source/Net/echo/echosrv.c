@@ -159,7 +159,11 @@ void do_echoser(int conn)
 
 void handle_sigchld(int sig)
 {
-	while (waitpid(-1, NULL, WNOHANG) > 0);
+	int mypid = 0;
+	while ((mypid = waitpid(-1, NULL, WNOHANG)) > 0)
+	{
+		printf("孩子退出，父进程收尸 : %d\n", mypid);
+	}
 }
 
 int main(void)
